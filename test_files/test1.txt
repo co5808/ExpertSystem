@@ -1,0 +1,12 @@
+#A => B
+#A => B + C
+
+
+A + (K | (C + D) + E) + F => B
+
+# B C !D E F !G H I !J K !L
+
+
+=AK1C
+
+?B
