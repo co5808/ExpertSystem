@@ -18,6 +18,8 @@ class ExpertSys:
 		self.options = options
 
 		try:
+			factsSet = False
+			goalsSet = False
 			with open(filepath) as f:
 				tmp = f.readlines()
 				for line in tmp:
@@ -25,19 +27,42 @@ class ExpertSys:
 					if '#' in line:
 						line = line.split('#')[0].strip();
 					if line != '\n' and line != '':
-						# TODO: check errors
 						if line[0] == '=':
-							self.facts = line.split("=")[1].split(" ")[0]
+							if factsSet:
+								exitWithError("You already defined facts one..!")
+							self.facts = line.split("=")[1].replace(" ", "").strip()
+							for c in self.facts:
+								if not self.IsQueryChar(c):
+									exitWithError("Not valid char in facts:" + c)
+							factsSet = True
+							self.facts = "1" + self.facts
 						elif line[0] == '?':
-							self.goals = line.split("?")[1].split(" ")[0]
+							if not factsSet:
+								exitWithError("You must defines facts before goals..!")
+							if goalsSet:
+								exitWithError("You already defined goals one..!")
+							self.goals = line.split("?")[1].replace(" ", "").strip()
+							for c in self.goals:
+								if not self.IsQueryChar(c):
+									exitWithError("Not valid char in goals (" + c +")")
+							goalsSet = True
 						else:
 							# need to check errors.
 							if "=>" in line:
 								rule = line.split("=>")[0].strip()
+								rule = "(" + rule + ")"
 								rightSide = line.split("=>")[1].strip()
 
+								# error check
+								isRule = False
+								if not self.HasGoodSyntax(rightSide, isRule):
+									exitWithError('Error with right side of expression: "' + line + '"')
+								isRule = True
+								if not self.HasGoodSyntax(rule, isRule):
+									exitWithError('Error with left side of expression: "' + line + '"')
+
+								# add nodes
 								namesPos, namesNeg = self.GetNames(rightSide)
-								rule = "(" + rule + ")"
 								for name in namesPos:
 									if name in self.nodes:
 										self.nodes[name].AddRule(rule);
@@ -52,10 +77,53 @@ class ExpertSys:
 
 				for cle,node in self.nodes.items():
 					node.PrintRules();
-				# print self.facts;
+				print "Facts:",self.facts;
 		except (OSError, IOError) as e:
 			exitWithError('Trying to open file with path "' + filepath + '", got error: ' + e.strerror)
 		return
+
+	def IsQueryChar(self, c):
+		if c and c.isalpha() and c.isupper():
+			return True
+		return False
+
+	def HasGoodSyntax(self, line, isRule):
+		line = line.replace(" ", "")
+		if line == '\n' and line == '':
+			return False
+		parenthesisCount = 0
+		prevC = None
+		for c in line:
+			if c == "(":
+				if self.IsQueryChar(prevC):
+					return False
+				parenthesisCount += 1
+			elif c == ")":
+				if parenthesisCount <= 0 or not self.IsQueryChar(prevC):
+					return False
+				parenthesisCount -= 1
+			elif c == "!":
+				if self.IsQueryChar(prevC):
+					return False
+			elif c == "+":
+				if not self.IsQueryChar(prevC) and not prevC == ")":
+					return False
+			elif isRule and c == "|":
+				if not self.IsQueryChar(prevC):
+					return False
+			elif isRule and c == "^":
+				if not self.IsQueryChar(prevC):
+					return False
+			elif self.IsQueryChar(c):
+				if self.IsQueryChar(prevC):
+					return False
+			else:
+				return False
+			prevC = c
+
+		if parenthesisCount > 0 or prevC == "!":
+			return False
+		return True
 
 	def GetNames(self, rightSide):
 		rightSide = rightSide.replace(" ", "")
@@ -93,14 +161,15 @@ class ExpertSys:
 			return True
 		elif query in self.nodes:
 			for rule in self.nodes[query].rules:
-				rule.replace(" ", "")
+				print "Rule for " + query + ": " + rule
+				rule = rule.replace(" ", "")
 				while "(" in rule:
-					print "Rule: " + rule
+					print "\tBecomes: " + rule
 					closePar = rule.find(")")
 					openPar = rule.rfind("(", 0, closePar)
 					# print openPar, closePar;
 					extract = rule[openPar + 1 : closePar]
-					print "Extract:",extract
+					# print "Extract:",extract
 
 					resultEval = self.EvalExtract(extract)
 
@@ -111,29 +180,35 @@ class ExpertSys:
 					else:
 						tmpRule = tmpRule + "0"
 					rule = tmpRule + rule[closePar + 1:]
-				print rule
-				# if rule == "1":
-					# if query not in self.facts:
-					# 	self.facts += query
-					# return True
+				print "Rule for " + query + " evaluated to: " + rule
+				if rule == "1":
+					if query not in self.facts:
+						self.facts += query
+					return True
 			return False
 		else:
 			# print query + " is impossible to get",
 			return False
 
 	def EvalExtract(self, extract):
+		# TODO: extract can also be just a single value
+		# TODO: extract can contain exclamation mark
 		leftSide = extract[0]
-		rightSide = extract[2]
 		vals = []
 		ops = []
-		operator = extract[1]
-		ops.append(operator)
-		otherSide = extract[3:]
+		otherSide = extract[1:]
 
 		left = self.BackwordChaining(leftSide)
 		vals.append(left)
 
 		while True:
+			if otherSide != "":
+				operator = otherSide[0]
+				ops.append(operator)
+				rightSide = otherSide[1]
+				otherSide = otherSide[2:]
+			else:
+				break
 			right = self.BackwordChaining(rightSide)
 			vals.append(right)
 
@@ -144,18 +219,11 @@ class ExpertSys:
 			if operator == "^":
 				leftSide = (not left and right) or (not right and left);
 
-			if otherSide != "":
-				rightSide = otherSide[1]
-				operator = otherSide[0]
-				ops.append(operator)
-				otherSide = otherSide[2:]
-			else:
-				break
 
 		i = 1
 		j = 0
 		ret = vals[0]
-		print "(",vals[0],
+		print "\t(",vals[0],
 		while i < len(vals):
 			print ops[j],vals[i],
 
@@ -171,87 +239,17 @@ class ExpertSys:
 
 		return ret
 
-	# def BackwordChaining(self, query):
-	# 	if query in self.facts:
-	# 		# print query + " is known fact",
-	# 		return True
-	# 	elif query in self.nodes:
-	# 		isTrue = False;
-	# 		for rule in self.nodes[query].rules:
-	# 			print rule,
-	#
-	# 			rule = rule.replace(" ", "")
-	#
-	# 			leftSide = rule[0]
-	# 			rightSide = rule[2]
-	# 			vals = []
-	# 			ops = []
-	# 			operator = rule[1]
-	# 			ops.append(operator)
-	# 			otherSide = rule[3:]
-	#
-	# 			left = self.BackwordChaining(leftSide)
-	# 			vals.append(left)
-	# 			if left:
-	# 				self.facts = self.facts + leftSide
-	#
-	# 			while True:
-	#
-	# 				right = self.BackwordChaining(rightSide)
-	# 				vals.append(right)
-	# 				if right:
-	# 					self.facts = self.facts + rightSide
-	#
-	# 				if operator == "+":
-	# 					leftSide = left and right
-	# 				if operator == "|":
-	# 					leftSide = left or right
-	# 				if operator == "^":
-	# 					leftSide = (not left and right) or (not right and left);
-	#
-	# 				if otherSide != "":
-	# 					rightSide = otherSide[1]
-	# 					operator = otherSide[0]
-	# 					ops.append(operator)
-	# 					otherSide = otherSide[2:]
-	# 				else:
-	# 					break
-	#
-	# 			i = 1
-	# 			j = 0
-	# 			ret = vals[0]
-	# 			print "(",vals[0],
-	# 			while i < len(vals):
-	# 				print ops[j],vals[i],
-	#
-	# 				if ops[j] == "+":
-	# 					ret = ret and vals[i]
-	# 				if ops[j] == "|":
-	# 					ret = ret or vals[i]
-	# 				if ops[j] == "^":
-	# 					ret = (not ret and vals[i]) or (not vals[i] and ret);
-	# 				i += 1
-	# 				j += 1
-	# 			print ")",
-	#
-	# 			return ret
-	# 	else:
-	# 		# print query + " is impossible to get",
-	# 		return False
-	#
-	# 	return isTrue
-
 	def Eval(self):
 		for i, query in enumerate(self.goals):
 			if i != 0:
 				print ""
 
-			print query + " =>",
+			print "Quering " + query
 			if self.BackwordChaining(query):
 				print "\n" + query + ": True"
 			else:
 				print "\n" + query + ": False"
-			print self.facts;
+			# print self.facts;
 		return
 
 
