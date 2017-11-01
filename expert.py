@@ -18,6 +18,8 @@ class ExpertSys:
 		self.options = options
 
 		try:
+			factsSet = False
+			goalsSet = False
 			with open(filepath) as f:
 				tmp = f.readlines()
 				for line in tmp:
@@ -25,21 +27,54 @@ class ExpertSys:
 					if '#' in line:
 						line = line.split('#')[0].strip();
 					if line != '\n' and line != '':
-						# TODO: check errors
 						if line[0] == '=':
-							self.facts = line.split("=")[1].split(" ")[0]
+							if factsSet:
+								exitWithError("You already defined facts one..!")
+							self.facts = line.split("=")[1].replace(" ", "").strip()
+							for c in self.facts:
+								if not self.IsQueryChar(c):
+									exitWithError("Not valid char in facts (" + c +")")
+							factsSet = True
 						elif line[0] == '?':
-							self.goals = line.split("?")[1].split(" ")[0]
+							if not factsSet:
+								exitWithError("You must defines facts before goals..!")
+							if goalsSet:
+								exitWithError("You already defined goals one..!")
+							self.goals = line.split("?")[1].replace(" ", "").strip()
+							for c in self.goals:
+								if not self.IsQueryChar(c):
+									exitWithError("Not valid char in goals (" + c +")")
+							goalsSet = True
 						else:
-							# need to check errors.
+							# TODO: need to check errors.
 							if "=>" in line:
 								rule = line.split("=>")[0].strip()
-								name = line.split("=>")[1].strip()
-								if name in self.nodes:
-									self.nodes[name].AddRule(rule);
-								else:
-									self.nodes[name] = Node(name, rule);
+								rule = "(" + rule + ")"
+								rightSide = line.split("=>")[1].strip()
 
+								isRule = False
+								if not self.HasGoodSyntax(rightSide, isRule):
+									exitWithError('Error with right side of expression: "' + line + '"')
+								isRule = True
+								if not self.HasGoodSyntax(rule, isRule):
+									exitWithError('Error with left side of expression: "' + line + '"')
+
+								names = self.GetNames(rightSide)
+								for name in names:
+									tmpRule = rule
+									if name[0] == "!":
+										tmpRule = "!" + tmpRule
+										name = name[1:]
+
+									if name in self.nodes:
+										self.nodes[name].AddRule(tmpRule);
+									else:
+										self.nodes[name] = Node(name, tmpRule);
+							else:
+								exitWithError('Wrong format for line: "' + line + '"')
+				# finished parsing file
+				if not factsSet or not goalsSet:
+					exitWithError("You must give facts and goals")
 				for cle,node in self.nodes.items():
 					node.PrintRules();
 				print self.facts;
@@ -47,6 +82,54 @@ class ExpertSys:
 			exitWithError('Trying to open file with path "' + filepath + '", got error: ' + e.strerror)
 		return
 
+	def IsQueryChar(self, c):
+		if c and c.isalpha() and c.isupper():
+			return True
+		return False
+
+	def HasGoodSyntax(self, line, isRule):
+		line = line.replace(" ", "")
+		if line == '\n' and line == '':
+			return False
+
+		parenthesisCount = 0
+		prevC = None
+		for c in line:
+			if c == "(":
+				if self.IsQueryChar(prevC):
+					return False
+				parenthesisCount += 1
+			elif c == ")":
+				if parenthesisCount <= 0 or not self.IsQueryChar(prevC):
+					return False
+				parenthesisCount -= 1
+			elif c == "!":
+				if self.IsQueryChar(prevC):
+					return False
+			elif c == "+":
+				if not self.IsQueryChar(prevC):
+					return False
+			elif isRule and c == "|":
+				if not self.IsQueryChar(prevC):
+					return False
+			elif isRule and c == "^":
+				if not self.IsQueryChar(prevC):
+					return False
+			elif self.IsQueryChar(c):
+				if self.IsQueryChar(prevC):
+					return False
+			else:
+				return False
+			prevC = c
+
+		if parenthesisCount > 0 or prevC == "!":
+			return False
+		return True
+
+	def GetNames(self, rightSide):
+		names = []
+		names.append(rightSide)
+		return names
 
 	def BackwordChaining(self, query):
 		if query in self.facts:
@@ -124,10 +207,10 @@ class ExpertSys:
 				print ""
 
 			print query + " =>",
-			if self.BackwordChaining(query):
-				print "\n" + query + ": True"
-			else:
-				print "\n" + query + ": False"
+			# if self.BackwordChaining(query):
+			# 	print "\n" + query + ": True"
+			# else:
+				# print "\n" + query + ": False"
 		return
 
 

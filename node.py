@@ -3,7 +3,7 @@
 class Node:
     def AddRule(self, rule):
         if rule not in self.rules:
-            self.rules.append(rule)
+			self.rules.append(rule)
 
     def __init__(self, name, rule):
         self.name = name;
