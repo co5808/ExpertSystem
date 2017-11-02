@@ -29,3 +29,15 @@ def exitWithError(message, usage = None):
 		printUsage()
 
 	sys.exit(2)
+
+def printFilename(filepath):
+	print bcolors.HEADER + "### " + filepath + " ###############################" + bcolors.ENDC
+
+def printResult(query, res):
+	if res == True:
+		print bcolors.OKGREEN + query + ": True" + bcolors.ENDC
+	else:
+		print bcolors.FAIL + query + ": False" + bcolors.ENDC
+
+def printQuery(query):
+	print bcolors.OKBLUE + query + bcolors.ENDC

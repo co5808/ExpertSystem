@@ -4,7 +4,7 @@
 
 import sys
 import argparse
-from printFunctions import printUsage, exitWithError
+from printFunctions import printUsage, exitWithError, printFilename, printResult, printQuery
 from readFile import GetFilepaths
 from node import *
 
@@ -14,7 +14,9 @@ class ExpertSys:
 		self.path = filepath
 		self.nodes = {};
 		self.facts = None
+		self.negativeFacts = ""
 		self.goals = None
+		self.openQuery = [];
 		self.options = options
 
 		try:
@@ -160,12 +162,22 @@ class ExpertSys:
 
 
 	def BackwordChaining(self, query, stringIndent):
-
-		print stringIndent + "Quering " + query
+		if query in self.openQuery:
+			exitWithError("Infinite loop detected. (Query: '" + query + "')")
+		else:
+			self.openQuery.append(query)
+		printQuery(stringIndent + "Quering " + query)
 		stringIndent += '\t';
 		if query in self.facts:
 			print stringIndent + query + " is known fact"
+			self.openQuery.remove(query)
 			return True
+		elif query in self.negativeFacts:
+			print stringIndent + query + " has already been evaluated false once"
+			if query not in self.negativeFacts:
+				self.negativeFacts += query
+			self.openQuery.remove(query)
+			return False
 		elif query in self.nodes:
 			for rule in self.nodes[query].rules:
 				print stringIndent + "Rule for " + query + ": " + rule
@@ -191,14 +203,20 @@ class ExpertSys:
 				if rule == "1":
 					if query not in self.facts:
 						self.facts += query
+					self.openQuery.remove(query)
 					return True
+			if query not in self.negativeFacts:
+				self.negativeFacts += query
+			self.openQuery.remove(query)
 			return False
 		else:
 			print stringIndent + query + " is impossible to get"
+			if query not in self.negativeFacts:
+				self.negativeFacts += query
+			self.openQuery.remove(query)
 			return False
 
 	def EvalExtract(self, extract, stringIndent):
-		# TODO: extract can also be just a single value
 		# TODO: extract can contain exclamation mark
 		leftSide = extract[0]
 		vals = []
@@ -251,32 +269,21 @@ class ExpertSys:
 			if i != 0:
 				print ""
 
-			if self.BackwordChaining(query, ''):
-				print "\n" + query + ": True"
-			else:
-				print "\n" + query + ": False"
-			# print self.facts;
+			res = self.BackwordChaining(query, '')
+			printResult(query, res)
 		return
 
 
 def main(argv):
 	options = []
-	paths = []
 	experts = []
 
-	argc = len(argv)
-	argc -= 1
-	while argc > 0:
-		if argv[argc][0] == '-':
-			# TODO: check if valid option
-			options.append(argv[argc])
-		else:
-			paths.insert(0, argv[argc])
-		argc -= 1
+	# TODO: get options
+
 	for path in GetFilepaths():
 		newExpert = ExpertSys(path, options)
-
 		experts.append(newExpert)
+
 	if len(experts) == 0:
 		exitWithError("No filepath given", True)
 	else:
@@ -284,7 +291,7 @@ def main(argv):
 			if i != 0:
 				print ""
 
-			print "- " + expert.path
+			printFilename(expert.path)
 			expert.Eval()
 
 main(sys.argv)
