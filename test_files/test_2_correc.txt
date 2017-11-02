@@ -1,0 +1,10 @@
+B + C => A
+D | E => B
+B => C
+
+?A
+
+WITH =, A Should be false.
+WITH =D, A Should be true.
+WITH =E, A Should be true.
+WITH =DE, A SHould be true.
