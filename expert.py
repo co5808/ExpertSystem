@@ -74,6 +74,8 @@ class ExpertSys:
 										self.nodes[name].AddRule(rule);
 									else:
 										self.nodes[name] = Node(name, rule);
+							else:
+								exitWithError('Implication symbol is not found: "' + line + '"')
 
 				for cle,node in self.nodes.items():
 					node.PrintRules();
@@ -99,7 +101,9 @@ class ExpertSys:
 					return False
 				parenthesisCount += 1
 			elif c == ")":
-				if parenthesisCount <= 0 or not self.IsQueryChar(prevC):
+				if parenthesisCount <= 0:
+					return False
+				if not self.IsQueryChar(prevC) and not prevC == ')':
 					return False
 				parenthesisCount -= 1
 			elif c == "!":
