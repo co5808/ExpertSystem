@@ -2,6 +2,7 @@
 #A => B + C
 
 A | F => D
+A => B
 A + (K | (C + D) + E) + F => B
 
 

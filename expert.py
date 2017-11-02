@@ -155,23 +155,26 @@ class ExpertSys:
 		return namesPos, namesNeg
 
 
-	def BackwordChaining(self, query):
+	def BackwordChaining(self, query, stringIndent):
+
+		print stringIndent + "Quering " + query
+		stringIndent += '\t';
 		if query in self.facts:
-			# print query + " is known fact",
+			print stringIndent + query + " is known fact"
 			return True
 		elif query in self.nodes:
 			for rule in self.nodes[query].rules:
-				print "Rule for " + query + ": " + rule
+				print stringIndent + "Rule for " + query + ": " + rule
 				rule = rule.replace(" ", "")
 				while "(" in rule:
-					print "\tBecomes: " + rule
+					print stringIndent + "\tBecomes: " + rule
 					closePar = rule.find(")")
 					openPar = rule.rfind("(", 0, closePar)
 					# print openPar, closePar;
 					extract = rule[openPar + 1 : closePar]
 					# print "Extract:",extract
 
-					resultEval = self.EvalExtract(extract)
+					resultEval = self.EvalExtract(extract, stringIndent + "\t\t")
 
 					# combine left + result + right
 					tmpRule = rule[0:openPar]
@@ -180,17 +183,17 @@ class ExpertSys:
 					else:
 						tmpRule = tmpRule + "0"
 					rule = tmpRule + rule[closePar + 1:]
-				print "Rule for " + query + " evaluated to: " + rule
+				print stringIndent + "Rule for " + query + " evaluated to: " + rule
 				if rule == "1":
 					if query not in self.facts:
 						self.facts += query
 					return True
 			return False
 		else:
-			# print query + " is impossible to get",
+			print stringIndent + query + " is impossible to get"
 			return False
 
-	def EvalExtract(self, extract):
+	def EvalExtract(self, extract, stringIndent):
 		# TODO: extract can also be just a single value
 		# TODO: extract can contain exclamation mark
 		leftSide = extract[0]
@@ -198,7 +201,7 @@ class ExpertSys:
 		ops = []
 		otherSide = extract[1:]
 
-		left = self.BackwordChaining(leftSide)
+		left = self.BackwordChaining(leftSide, stringIndent)
 		vals.append(left)
 
 		while True:
@@ -209,7 +212,7 @@ class ExpertSys:
 				otherSide = otherSide[2:]
 			else:
 				break
-			right = self.BackwordChaining(rightSide)
+			right = self.BackwordChaining(rightSide, stringIndent)
 			vals.append(right)
 
 			if operator == "+":
@@ -223,7 +226,7 @@ class ExpertSys:
 		i = 1
 		j = 0
 		ret = vals[0]
-		print "\t(",vals[0],
+		print stringIndent + "(",vals[0],
 		while i < len(vals):
 			print ops[j],vals[i],
 
@@ -244,8 +247,7 @@ class ExpertSys:
 			if i != 0:
 				print ""
 
-			print "Quering " + query
-			if self.BackwordChaining(query):
+			if self.BackwordChaining(query, ''):
 				print "\n" + query + ": True"
 			else:
 				print "\n" + query + ": False"
