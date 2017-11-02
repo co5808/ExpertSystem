@@ -1,7 +1,8 @@
 #A => D
 #A => B + C
 
-A + (!(E) + C) => D
+A + (K | (C + D) + E) + F => B
+A | (E + C)  => D
 
 =KA
 
