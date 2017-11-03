@@ -4,7 +4,7 @@
 
 import sys
 import argparse
-from printFunctions import printUsage, exitWithError, printFilename, printResult, printQuery
+from printFunctions import exitWithError, printFilename, printResult, printQuery
 from readFile import GetFilepaths, GetOptions
 from node import *
 
@@ -305,22 +305,21 @@ def main(argv):
 	options = ""
 	experts = []
 
-	# TODO: get options
 	if GetOptions():
 		options += "p"
 
-	for path in GetFilepaths():
-		newExpert = ExpertSys(path, options)
-		experts.append(newExpert)
-
-	if len(experts) == 0:
+	if len(GetFilepaths()) == 0:
 		exitWithError("No filepath given", True)
 	else:
-		for i, expert in enumerate(experts):
-			if i != 0:
-				print ""
+		for i,path in enumerate(GetFilepaths()):
+			try:
+				if i != 0:
+					print ""
+				printFilename(path)
+				newExpert = ExpertSys(path, options)
 
-			printFilename(expert.path)
-			expert.Eval()
+				newExpert.Eval()
+			except (RuntimeError) as e:
+				print e.args[0]
 
 main(sys.argv)
