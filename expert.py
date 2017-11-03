@@ -5,7 +5,7 @@
 import sys
 import argparse
 from printFunctions import printUsage, exitWithError, printFilename, printResult, printQuery
-from readFile import GetFilepaths
+from readFile import GetFilepaths, GetOptions
 from node import *
 
 class ExpertSys:
@@ -70,7 +70,7 @@ class ExpertSys:
 										self.nodes[name].AddRule(rule);
 									else:
 										self.nodes[name] = Node(name, rule);
-								rule = "!" + rule
+								rule = "(!" + rule + ")"
 								for name in namesNeg:
 									if name in self.nodes:
 										self.nodes[name].AddRule(rule);
@@ -79,9 +79,9 @@ class ExpertSys:
 							else:
 								exitWithError('Implication symbol is not found: "' + line + '"')
 
-				for cle,node in self.nodes.items():
-					node.PrintRules();
-				print "Facts:",self.facts;
+				# for cle,node in self.nodes.items():
+				# 	node.PrintRules();
+				# print "Facts:",self.facts;
 		except (OSError, IOError) as e:
 			exitWithError('Trying to open file with path "' + filepath + '", got error: ' + e.strerror)
 		return
@@ -161,36 +161,39 @@ class ExpertSys:
 		return namesPos, namesNeg
 
 
-	def BackwordChaining(self, query, stringIndent):
+	def BackwordChaining(self, query, stringIndent, needPrint):
 		if query in self.openQuery:
 			exitWithError("Infinite loop detected. (Query: '" + query + "')")
 		else:
 			self.openQuery.append(query)
-		printQuery(stringIndent + "Quering " + query)
+		if needPrint:
+			printQuery(stringIndent + "Quering " + query)
 		stringIndent += '\t';
 		if query in self.facts:
-			print stringIndent + query + " is known fact"
+			if needPrint:
+				print stringIndent + query + " is known fact"
 			self.openQuery.remove(query)
 			return True
 		elif query in self.negativeFacts:
-			print stringIndent + query + " has already been evaluated false once"
+			if needPrint:
+				print stringIndent + query + " has already been evaluated false once"
 			if query not in self.negativeFacts:
 				self.negativeFacts += query
 			self.openQuery.remove(query)
 			return False
 		elif query in self.nodes:
 			for rule in self.nodes[query].rules:
-				print stringIndent + "Rule for " + query + ": " + rule
+				if needPrint:
+					print stringIndent + "Rule for " + query + ": " + rule
 				rule = rule.replace(" ", "")
 				while "(" in rule:
-					print stringIndent + "\tBecomes: " + rule
+					if needPrint:
+						print stringIndent + "\tBecomes: " + rule
 					closePar = rule.find(")")
 					openPar = rule.rfind("(", 0, closePar)
-					# print openPar, closePar;
 					extract = rule[openPar + 1 : closePar]
-					# print "Extract:",extract
 
-					resultEval = self.EvalExtract(extract, stringIndent + "\t\t")
+					resultEval = self.EvalExtract(extract, stringIndent + "\t\t", needPrint)
 
 					# combine left + result + right
 					tmpRule = rule[0:openPar]
@@ -199,7 +202,8 @@ class ExpertSys:
 					else:
 						tmpRule = tmpRule + "0"
 					rule = tmpRule + rule[closePar + 1:]
-				print stringIndent + "Rule for " + query + " evaluated to: " + rule
+				if needPrint:
+					print stringIndent + "Rule for " + query + " evaluated to: " + rule
 				if rule == "1":
 					if query not in self.facts:
 						self.facts += query
@@ -210,23 +214,33 @@ class ExpertSys:
 			self.openQuery.remove(query)
 			return False
 		else:
-			print stringIndent + query + " is impossible to get"
+			if needPrint:
+				print stringIndent + query + " is impossible to get"
 			if query not in self.negativeFacts:
 				self.negativeFacts += query
 			self.openQuery.remove(query)
 			return False
 
-	def EvalExtract(self, extract, stringIndent):
-		# TODO: extract can contain exclamation mark
+	def EvalExtract(self, extract, stringIndent, needPrint):
 		leftSide = extract[0]
+		isNeg = False;
 		vals = []
+		valsSigns = []
 		ops = []
 		otherSide = extract[1:]
 
-		left = self.BackwordChaining(leftSide, stringIndent)
+		if leftSide == '!':
+			isNeg = True
+			leftSide = extract[1]
+			otherSide = extract[2:]
+		left = self.BackwordChaining(leftSide, stringIndent, needPrint)
 		vals.append(left)
+		if (isNeg):
+			left = not left
+		valsSigns.append(isNeg);
 
 		while True:
+			isNeg = False;
 			if otherSide != "":
 				operator = otherSide[0]
 				ops.append(operator)
@@ -234,51 +248,66 @@ class ExpertSys:
 				otherSide = otherSide[2:]
 			else:
 				break
-			right = self.BackwordChaining(rightSide, stringIndent)
+			if rightSide == '!':
+				isNeg = True;
+				rightSide = otherSide[0]
+				otherSide = otherSide[1:]
+			right = self.BackwordChaining(rightSide, stringIndent, needPrint)
+			# print rightSide;
 			vals.append(right)
+			if isNeg:
+				right = not right
+			valsSigns.append(isNeg);
 
 			if operator == "+":
-				leftSide = left and right
+				left = left and right
 			if operator == "|":
-				leftSide = left or right
+				left = left or right
 			if operator == "^":
-				leftSide = (not left and right) or (not right and left);
+				left = (not left and right) or (not right and left);
 
 
-		i = 1
-		j = 0
-		ret = vals[0]
-		print stringIndent + "(",vals[0],
-		while i < len(vals):
-			print ops[j],vals[i],
+		if needPrint:
+			i = 1
+			j = 0
+			print stringIndent + "(",
+			if valsSigns[0]:
+				print "!" +  str(vals[0]),
+				vals[0] = not vals[0]
+			else:
+				print vals[0],
+			while i < len(vals):
+				print ops[j],
+				if valsSigns[i]:
+					print "!" +  str(vals[i]),
+					vals[i] = not vals[i]
+				else:
+					print vals[i],
+				i += 1
+				j += 1
+			print ")"
 
-			if ops[j] == "+":
-				ret = ret and vals[i]
-			if ops[j] == "|":
-				ret = ret or vals[i]
-			if ops[j] == "^":
-				ret = (not ret and vals[i]) or (not vals[i] and ret);
-			i += 1
-			j += 1
-		print ")"
-
-		return ret
+		return left
 
 	def Eval(self):
+		needPrint = False
+		if "p" in self.options:
+			needPrint = True
 		for i, query in enumerate(self.goals):
-			if i != 0:
+			if i != 0 and needPrint:
 				print ""
 
-			res = self.BackwordChaining(query, '')
+			res = self.BackwordChaining(query, '', needPrint)
 			printResult(query, res)
 		return
 
-
 def main(argv):
-	options = []
+	options = ""
 	experts = []
 
 	# TODO: get options
+	if GetOptions():
+		options += "p"
 
 	for path in GetFilepaths():
 		newExpert = ExpertSys(path, options)
