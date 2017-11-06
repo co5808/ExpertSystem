@@ -1,6 +1,5 @@
 # ExpertSystem
-42 project: ExpertSystem
-By Claudio Mutti and Hamza Louar
+42 project done by Claudio Mutti and Hamza Louar
 
 ### Objective:
 The goal of this project is to make a propositional calculus expert system by implementing a backward-chaining inference engine.
