@@ -62,6 +62,7 @@ class ExpertSys:
 								isRule = True
 								if not self.HasGoodSyntax(rule, isRule):
 									exitWithError('Error with left side of expression: "' + line + '"')
+								rule = self.AddPriorities(rule)
 
 								# add nodes
 								namesPos, namesNeg = self.GetNames(rightSide)
@@ -85,6 +86,76 @@ class ExpertSys:
 		except (OSError, IOError) as e:
 			exitWithError('Trying to open file with path "' + filepath + '", got error: ' + e.strerror)
 		return
+
+	def InsertInString(self, index, s, c):
+		return s[:index] + c + s[index:]
+
+	def InglobeOperator(self, rule, operator):
+		i = 0
+		while i < len(rule):
+			if rule[i] == operator:
+				left = i
+				right = i
+				i += 1
+				counter = 0
+				while left > 0:
+					if rule[left] == ")":
+						counter += 1
+					elif rule[left] == "(":
+						counter -= 1
+						if counter == 0:
+							break
+					elif rule[left].isalpha() and counter == 0:
+						break
+					left -= 1
+				while right < len(rule):
+					if rule[right] == "(":
+						counter += 1
+					elif rule[right] == ")":
+						counter -= 1
+						if counter == 0:
+							break
+					elif rule[right].isalpha() and counter == 0:
+						break
+					right += 1
+				rule = self.InsertInString(right + 1, rule, ")")
+				rule = self.InsertInString(left - 1, rule, "(")
+			i += 1
+		return rule
+
+
+
+	def AddPriorities(self, rule):
+		i = 0
+		# print "Rule:",rule
+		while i < len(rule):
+			if rule[i] == "!":
+				i += 1
+				j = i
+				if not rule[i].isalpha():
+					counter = 0
+					while j < len(rule):
+						if rule[j] == "(":
+							counter += 1
+						elif rule[j] == ")":
+							counter -= 1
+							if counter == 0:
+								break
+						j += 1
+				rule = self.InsertInString(j + 1, rule, ")")
+				rule = self.InsertInString(i - 1, rule, "(")
+			i += 1
+		# print "After !: ",rule
+		rule = self.InglobeOperator(rule, "+")
+		# print "After +: ",rule
+		rule = self.InglobeOperator(rule, "|")
+		# print "After |: ",rule
+		rule = self.InglobeOperator(rule, "^")
+		# print "After ^: ",rule + "\n"
+
+
+
+		return rule
 
 	def IsQueryChar(self, c):
 		if c and c.isalpha() and c.isupper():
