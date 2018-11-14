@@ -1,9 +1,9 @@
-A => B
-A + B => C
-C => G
-! G => A
-! G => B
-! A + ! B => A
+! G => A		#! RC43 => ! DS616
+! G => B		#! RC43 => ! DS611
+! A + ! B => A	#! DS616 + ! DS611 => DS616
+A => B		#DS616 => DS611
+A + B => C	#DS616 + D611 => CB617
+C => G		#CB617 => RC43
 
 =AB
 ?G
