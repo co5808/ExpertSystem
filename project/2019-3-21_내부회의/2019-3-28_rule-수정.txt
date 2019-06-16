@@ -1,0 +1,64 @@
+(defrule fault1TL-1
+	( (#?TL 주보호TRIP TRUE) OR 
+	(지락주보호 TRUE) OR
+	(지락후비보호 TRUE) )
+
+=>
+	(add(fault1TL?-2 TRUE))
+)
+
+(defrule fault1TL-2
+	(fault1TL?-2 TRUE) and ( 6?7 CB TRUE)
+
+=>
+	(add(fault1 #?TL TRUE))
+)
+
+
+(defrule fault2TL-1
+	( (#?TL 송전선단선 TRUE)
+
+=>
+	(add(fault2TL? TRUE))
+)
+
+
+
+(defrule fault3BUS1-1
+	((#1 87B1 TRUE) AND
+	(#1 87B TRUE))
+
+=>
+	(add(fault3BUS1-1 TRUE))
+)
+
+(defrule fault3BUS1-2
+	(fault3BUS1-1 TRUE) AND
+	((#? M.Tr 27T TRUE) OR
+	(6100 CB TRUE))
+
+=>
+	(add(fault3BUS1 True))
+)
+
+
+(defrule fault3BUS2-1
+	((#1 87B2 TRUE) AND
+	(#1 87B TRUE))
+
+=>
+	(add(fault3BUS2-1 TRUE))
+)
+
+(defrule fault3BUS2-2
+	(fault3BUS2-1 TRUE) AND
+	((#? M.Tr 27T TRUE) OR
+	(6100 CB TRUE))
+
+=>
+	(add(fault3BUS2 True))
+)
+
+
+
+

@@ -1,0 +1,47 @@
+(defrule TL1fault1
+	( (TL 1 relay 주보호TRIP TRUE) OR 
+	(지락주보호) OR
+	(지락후비보호) ) AND
+	(6?7 CB True)
+=>
+	(add(fault1 ?))
+)
+
+___________________________________________________________
+(defrule TL1fault1-1
+	( (#?TL 주보호TRIP) OR 
+	(지락주보호) OR
+	(지락후비보호) )
+
+=>
+	(add(fault1-2 True))
+)
+
+(defrule TL1fault1-2
+	(fault1-2 True ) and ( 6?7 CB true )
+=>
+	(add(fault1 ?))
+)
+
+
+	(6?7 CB True)
+)
+
+
+
+----------------------------------------------------------------
+(defrule fault1TL-1
+	( (#?TL 주보호TRIP TRUE) OR 
+	(지락주보호 TRUE) OR
+	(지락후비보호 TRUE) )
+
+=>
+	(add(fault1TL?-2 True))
+)
+
+(defrule fault1TL-2
+	(fault1TL?-2 True ) and ( 6?7 CB true )
+=>
+	(add(fault1 #?TL))
+)
+

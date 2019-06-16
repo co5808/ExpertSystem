@@ -1,0 +1,20 @@
+룰베이스
+If then
+
+유형 4 - 모두 and? or?
+
+154kV BUSPRO 87B, 87B1 
+154kV BUSPRO 86B1 RESET
+154kV BUSPRO B/F
+#1M.Tr 87, 96Ry
+
+
+
+154kV BUS-TIE 6100 CB
+교육-개발#1T/L 617 CB
+정진-교육#1T/L 637 CB
+◆◆전자T/L 657 CB
+#3M.Tr 1차 6333 CB
+#1M.Tr 2차 4144 CB
+#1SC 4179 CB
+#3SC 4379 CB
